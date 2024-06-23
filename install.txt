@@ -1,0 +1,22 @@
+$pyenv_dir = "$Env:LOCALAPPDATA\Programs\pyenv"
+
+#mkdir $pyenv_dir | out-null
+#
+#Invoke-WebRequest -Uri "https://valentin.dasdeck.com/projects/pyenv/pyenv.cmd" -OutFile "$pyenv_dir\pyenv.cmd"
+#
+#Invoke-WebRequest -Uri "https://valentin.dasdeck.com/projects/pyenv/api.txt" -OutFile "$pyenv_dir\api.txt"
+#
+#Invoke-WebRequest -Uri "https://valentin.dasdeck.com/projects/pyenv/dark.zip" -OutFile "$pyenv_dir\dark.zip"
+#
+#Expand-Archive "$pyenv_dir\dark.zip" -DestinationPath $pyenv_dir
+#
+#del "$pyenv_dir\dark.zip"
+#
+##Invoke-Expression "$pyenv_dir\pyenv.cmd setup"
+#
+#$script = "$pyenv_dir\pyenv.cmd"
+#Invoke-Expression "& '$script' setup"
+#
+#$env:Path = [System.Environment]::GetEnvironmentVariable("Path", "Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path", "User")
+
+echo "hellow World!"
