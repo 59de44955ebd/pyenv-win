@@ -36,9 +36,9 @@ $pyenv_version_dir = Get-Content -Path "$pyenv_dir\versions_dir.txt"
 
 function Setup-Env
 {
-	echo "Prepending pyenv directory and %PYTHONHOME% to PATH variable ..."
+	echo "Prepending pyenv directory, %PYTHONHOME% and %PYTHONHOME%\Scripts to PATH variable ..."
 	$oldpath = (get-item "HKCU:\Environment").GetValue("Path", $null, 'DoNotExpandEnvironmentNames')
-	$newpath = "$pyenv_dir;%PYTHONHOME%;$oldpath"
+	$newpath = "$pyenv_dir;%PYTHONHOME%;%PYTHONHOME%\Scripts;$oldpath"
 	Set-ItemProperty -Path 'Registry::HKEY_CURRENT_USER\Environment' -Name Path -Value $newpath
 	# Update for current Powershell
 	$env:Path = [System.Environment]::GetEnvironmentVariable("Path", "Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path", "User")
