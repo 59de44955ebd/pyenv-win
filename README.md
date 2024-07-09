@@ -2,7 +2,7 @@
 A simple script (both for PowerShell and CMD) that allows to install/uninstall/switch between/manage 64-bit Python 3 versions for Windows provided as binaries by [Python.org](https://www.python.org/downloads/windows/). 
 The original installers (python-X.X.X-amd64.exe) are never executed, and therefor nothing is written to the Registry, other than updating the Path environment variable (in userspace) when (globally) switching between Python versions.
 
-At the time of writing , 76 different Python versions can be installed, the earliest being 3.5.0 and the latest 3.12.4 (versions 3.4.x and earlier use different installers and are therefor not supported).
+At the time of writing, 76 different Python versions can be installed, the earliest being 3.5.0 and the latest 3.12.4 (versions 3.4.x and earlier use different installers and are therefor not supported).
 
 ## Setup
 Run this command in PowerShell:
