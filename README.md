@@ -81,7 +81,7 @@ C:\>pyenv versions
 
 C:\>pyenv global 3.10.3
 Refreshing environment variables ...
-Done.
+Python 3.10.3
 
 C:\>pyenv versions
 * 3.10.3

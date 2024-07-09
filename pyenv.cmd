@@ -114,7 +114,7 @@ rem ######################################
 if exist "%PYTHON_VERSION_DIR%\%1\" (
 	set PYTHONHOME=%PYTHON_VERSION_DIR%\%1
 	call :refresh_env
-	echo Done.
+	python -V
 ) else (
 	echo [Error] Version not available
 )
@@ -127,7 +127,7 @@ if exist "%PYTHON_VERSION_DIR%\%1\" (
 	set PYTHONHOME=%PYTHON_VERSION_DIR%\%1
 	setx PYTHONHOME %PYTHON_VERSION_DIR%\%1 >nul
 	call :refresh_env
-	echo Done.
+	python -V
 ) else (
 	echo [Error] Version not available
 )
