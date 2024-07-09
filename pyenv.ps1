@@ -315,9 +315,10 @@ elseif ($args.Count -gt 0 -and $args[0] -eq "pip-upgrade-all") {
 else {
 echo @'
 
-Usage: pyenv <command> [<version>]
+Usage: pyenv <command> [<arguments>]
 
 Available commands:
+===================
 
    install <version>         Install a Python version (download from python.org)
 
