@@ -10,7 +10,6 @@ if %ERRORLEVEL% == 0 (
 set PYENV_VERSION=0.1
 set PYENV_DIR=%~dp0
 set PYENV_DIR=%PYENV_DIR:~0,-1%
-set DARK="%PYENV_DIR%\dark\dark.exe"
 
 if not exist "%PYENV_DIR%\versions_dir.txt" (
 	exit /b
@@ -50,19 +49,19 @@ if "%1" == "list" (
 
 rem pyenv install 3.12.4
 if "%1" == "install" if "%2" neq "" (
-	call :install %2
+	powershell pyenv.ps1 %*
 	goto :eof
 )
 
 rem pyenv uninstall 3.12.4
 if "%1" == "uninstall" if "%2" neq "" (
-	call :uninstall %2
+	powershell pyenv.ps1 %*
 	goto :eof
 )
 
 rem pyenv update-list
 if "%1" == "update-list" (
-	call :update_list
+	powershell pyenv.ps1 %*
 	goto :eof
 )
 
@@ -146,139 +145,6 @@ for /F "usebackq delims=" %%a in (`dir /b /ad "%PYTHON_VERSION_DIR%"`) do (
 exit /b
 
 rem ######################################
-:install
-rem ######################################
-
-set INSTALLER_EXE=python-%1-amd64.exe
-set TARGET_DIR=%PYTHON_VERSION_DIR%\%1
-
-setlocal EnableDelayedExpansion
-
-if exist "%TARGET_DIR%\" (
-	set RESULT=
-	set /p "RESULT=Remove existing directory %TARGET_DIR%? [y/N]? "
-	if "!RESULT!" neq "y" (
-		exit /b
-	)
-	echo Removing %TARGET_DIR% ...
-	rd /S /Q "%TARGET_DIR%"
-)
-
-rem for 3.7+
-set PIP_URL=https://bootstrap.pypa.io/get-pip.py
-set VERSION=%1
-if "%VERSION:~0,3%" == "3.5" (
-	set PIP_URL=https://bootstrap.pypa.io/pip/3.5/get-pip.py
-)
-if "%VERSION:~0,3%" == "3.6" (
-	set PIP_URL=https://bootstrap.pypa.io/pip/3.6/get-pip.py
-)
-
-rem download
-echo Downloading %INSTALLER_EXE% from python.org ...
-powershell -c Invoke-WebRequest -Uri "https://www.python.org/ftp/python/%1/%INSTALLER_EXE%" -OutFile "%TMP%\%INSTALLER_EXE%"
-if "%ERRORLEVEL%" neq "0" (
-	echo [Error] Failed to download %INSTALLER_EXE% from python.org
-	exit /b
-)
-
-rem unpack
-echo Exctacting MSI files from %INSTALLER_EXE% ...
-md "%TMP%\msi"
-%DARK% -nologo -x "%TMP%\msi" "%TMP%\%INSTALLER_EXE%" >nul
-
-rem extract
-echo Extracting contents of MSI files to %TARGET_DIR% ...
-md "%TARGET_DIR%"
-
-msiexec /quiet /a "%TMP%\msi\AttachedContainer\core.msi" targetdir="%TARGET_DIR%"
-msiexec /quiet /a "%TMP%\msi\AttachedContainer\dev.msi" targetdir="%TARGET_DIR%"
-msiexec /quiet /a "%TMP%\msi\AttachedContainer\doc.msi" targetdir="%TARGET_DIR%"
-msiexec /quiet /a "%TMP%\msi\AttachedContainer\exe.msi" targetdir="%TARGET_DIR%"
-msiexec /quiet /a "%TMP%\msi\AttachedContainer\lib.msi" targetdir="%TARGET_DIR%"
-msiexec /quiet /a "%TMP%\msi\AttachedContainer\tcltk.msi" targetdir="%TARGET_DIR%"
-msiexec /quiet /a "%TMP%\msi\AttachedContainer\test.msi" targetdir="%TARGET_DIR%"
-
-rem install pip
-echo Installing pip ...
-set PYTHONHOME=%TARGET_DIR%
-set "PATH=%PYTHONHOME%;%PYTHONHOME%\scripts;%PATH%"
-powershell -c Invoke-WebRequest -Uri "%PIP_URL%" -OutFile "%TARGET_DIR%\get-pip.py"
-if "%ERRORLEVEL%" neq "0" (
-	echo [Error] Failed to download %PIP_URL%
-) else (
-	python "%TARGET_DIR%\get-pip.py" >nul 2>nul
-)
-
-rem cleanup
-echo Cleaning up ...
-del "%TMP%\%INSTALLER_EXE%"
-rd /s /q "%TMP%\msi"
-del /q "%TARGET_DIR%\*.msi"
-
-echo Done.
-endlocal
-exit /b
-
-rem ######################################
-:uninstall
-rem ######################################
-set TARGET_DIR=%PYTHON_VERSION_DIR%\%1
-
-setlocal EnableDelayedExpansion
-
-if exist "%TARGET_DIR%\" (
-	set RESULT=
-	set /p "RESULT=Remove %TARGET_DIR%? [y/N] "
-	if "!RESULT!" neq "y" (
-		exit /b
-	)
-	echo Uninstalling Python %1 ...
-	rd /s /q "%TARGET_DIR%"
-	echo Done.
-) else (
-	echo [Error] Version does not exist
-)
-
-endlocal
-exit /b
-
-rem ######################################
-:update_list
-rem ######################################
-echo Updating version list, please be patient ...
-set ver_file=%PYENV_DIR%\versions_list.txt
-del %ver_file% 2>nul
-powershell -c "$result = (Invoke-WebRequest -Uri 'https://www.python.org/ftp/python/');$links = $result.ParsedHtml.links;foreach ($link in $links) {if ($link.pathname.StartsWith('3') -or $link.pathname.StartsWith('4') -or $link.pathname.StartsWith('5')) {$pyversion = $link.pathname.substring(0, $link.pathname.length - 1);try {(Invoke-RestMethod -Uri """https://www.python.org/ftp/python/$pyversion/python-$pyversion-amd64.exe""" -Method Head) | out-null;echo $pyversion >> '%ver_file%'} catch {}}}"
-echo Done.
-endlocal
-exit /b
-
-rem ######################################
-:parse_line
-rem ######################################
-
-set "line=%~1"
-
-if "!line:~0,8!" neq "<a href=" (
-	exit /b
-)
-
-rem will work upto Python 5 :-)
-if "!line:~9,1!" neq "3" (
-	if "!line:~9,1!" neq "4" (
-		if "!line:~9,1!" neq "5" (
-			exit /b
-		)
-	)
-)
-
-set "a=!line:~9,7!"
-set "b=%a:/=%"
-set RESULT=%b:"=%
-exit /b
-
-rem ######################################
 :refresh_env
 rem ######################################
 rem Only works in CMD, not PS!
@@ -346,11 +212,11 @@ rem ######################################
 :pip_upgrade_all
 rem ######################################
 
-pip freeze >"%TMP%\~p1.txt"
-for /F "tokens=*" %%a in ("%TMP%\~p1.txt") do for /F "delims=^=^=" %%b in ("%%a") do echo %%b >> "%TMP%\~p2.txt"
-del "%TMP%\~p1.txt"
-pip install -U -r "%TMP%\~p2.txt"
-del "%TMP%\~p2.txt"
+pip freeze >"%TMP%\~pip1.txt"
+for /F "tokens=*" %%a in ("%TMP%\~pip1.txt") do for /F "delims=^=^=" %%b in ("%%a") do echo %%b >> "%TMP%\~pip2.txt"
+del "%TMP%\~pip1.txt"
+pip install -U -r "%TMP%\~pip2.txt"
+del "%TMP%\~pip2.txt"
 echo Done.
 exit /b
 
@@ -370,7 +236,7 @@ if not exist "%PYTHON_VERSION_DIR%\%2\" (
 	if "!RESULT!" neq "y" (
 		exit /b
 	)
-	call :install %2
+	powershell pyenv.ps1 install %2
 	if not exist "%PYTHON_VERSION_DIR%\%2\" (
 		echo [Error] Version %2 could not be installed.
 		exit /b

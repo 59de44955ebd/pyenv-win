@@ -2,7 +2,7 @@ $pyenv_dir = $PSScriptRoot
 
 function Get-Folder($initialDirectory="")
 {
-    [System.Reflection.Assembly]::LoadWithPartialName("System.windows.forms")|Out-Null
+    [System.Reflection.Assembly]::LoadWithPartialName("System.windows.forms") | out-null
     $foldername = New-Object System.Windows.Forms.FolderBrowserDialog
     $foldername.Description = "Select a folder"
     $foldername.rootfolder = "MyComputer"
@@ -19,9 +19,12 @@ function Setup-Version-Dir
 	$pyenv_version_dir = "$pyenv_dir\versions"
 	echo "By default pyenv installs Python versions into $pyenv_version_dir."
 	$res = Read-Host "Do you want to select a different directory? [y/N]"
-	if ($res -eq "y") {
+	if ($res -eq "y")
+	{
 		$pyenv_version_dir = Get-Folder
-	} else {
+	}
+	else
+	{
 		New-Item -ItemType "directory" -Path $pyenv_version_dir >nul
 	}
 	echo $pyenv_version_dir >"$pyenv_dir\versions_dir.txt"
@@ -50,7 +53,7 @@ function Update-List
 
 	echo "Updating version list, please be patient ..."
 	if (Test-Path "$version_file")
-		{
+	{
 		Remove-Item $version_file
 	}
 	$result = (Invoke-WebRequest -Uri 'https://www.python.org/ftp/python/')
@@ -63,7 +66,18 @@ function Update-List
 			{
 				(Invoke-RestMethod -Uri "https://www.python.org/ftp/python/$pyversion/python-$pyversion-amd64.exe" -Method Head) | out-null
 				echo $pyversion >> "$version_file"
-			} catch {}
+			}
+			catch
+			{
+				$result2 = (Invoke-WebRequest -Uri "https://www.python.org/ftp/python/$pyversion/")
+				foreach ($link in $result2.Links)
+				{
+					if ($link.href.EndsWith('-amd64.exe'))
+					{
+						echo $link.href.substring(7, $link.href.length - 17) >> "$version_file"
+					}
+				}
+			}
 		}
 	}
 	echo "Done."
@@ -75,16 +89,20 @@ function Setup
 	Update-List
 }
 
-function Install {
+function Install
+{
     param (
         $version
     )
 
+	# 3.13.0b3
+	# https://www.python.org/ftp/python/3.13.0/python-3.13.0b3-amd64.exe
+
 	$installer_exe = "python-$version-amd64.exe"
 	$target_dir = "$pyenv_version_dir\$version"
 
-	if (Test-Path "$target_dir\") {
-#		echo "[Error] Directory '$target_dir' already exists"
+	if (Test-Path "$target_dir\")
+	{
 		$res = Read-Host "Remove existing directory ${TARGET_DIR}? [y/N]"
 		if ($res -ne "y") {
 			exit
@@ -95,10 +113,22 @@ function Install {
 
 	# download
 	echo "Downloading $installer_exe from python.org ..."
-	try {
+
+	if ($version.IndexOf("a") -gt 0)
+	{
+		$version = $version.substring(0, $version.IndexOf("a"))
+	}
+	elseif ($version.IndexOf("b") -gt 0)
+	{
+		$version = $version.substring(0, $version.IndexOf("b"))
+	}
+
+	try
+	{
 		Invoke-WebRequest -Uri "https://www.python.org/ftp/python/$version/$installer_exe" -OutFile "$($env:TMP)\$installer_exe"
 	}
-	catch {
+	catch
+	{
 		Write-Error "[Error] Failed to download $installer_exe from python.org"
 		exit 1
 	}
@@ -124,23 +154,33 @@ function Install {
 	# install pip
 	echo "Installing pip ..."
 	$pip_url = "https://bootstrap.pypa.io/get-pip.py" # for 3.7+
-	if ($version.StartsWith('3.5')) {
+	if ($version.StartsWith('3.5'))
+	{
 		$pip_url = "https://bootstrap.pypa.io/pip/3.5/get-pip.py"
 	}
-	elseif ($version.StartsWith('3.6')) {
+	elseif ($version.StartsWith('3.6'))
+	{
 		$pip_url = "https://bootstrap.pypa.io/pip/3.6/get-pip.py"
 	}
-	try {
+	try
+	{
 		Invoke-WebRequest -Uri "$pip_url" -OutFile "$target_dir\get-pip.py"
+	}
+	catch
+	{
+		Write-Error "[Error] Failed to download $PIP_URL"
+	}
+
+	if (Test-Path "$target_dir\get-pip.py")
+	{
 		$pythonhome_org = $env:PYTHONHOME
 		$env:PYTHONHOME = $target_dir
 		$env:Path = [System.Environment]::GetEnvironmentVariable("Path", "Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path", "User")
-		Invoke-Expression "& '$target_dir\python.exe' '$target_dir\get-pip.py'" >nul 2>nul
+
+		Invoke-Expression "& '$target_dir\python.exe' '$target_dir\get-pip.py'" | out-null
+
 		$env:PYTHONHOME = $pythonhome_org
 		$env:Path = [System.Environment]::GetEnvironmentVariable("Path", "Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path", "User")
-	}
-	catch {
-		Write-Error "[Error] Failed to download $PIP_URL"
 	}
 
 	# cleanup
@@ -151,7 +191,8 @@ function Install {
 	echo "Done."
 }
 
-function Uninstall {
+function Uninstall
+{
     param (
         $version
     )
@@ -159,7 +200,8 @@ function Uninstall {
 	$target_dir = "$pyenv_version_dir\$version"
 
 	$res = Read-Host "Remove ${target_dir}? [y/N]"
-	if ($res -ne "y") {
+	if ($res -ne "y")
+	{
 		exit
 	}
 
@@ -168,46 +210,60 @@ function Uninstall {
 	echo "Done."
 }
 
-function Local {
+function Local
+{
     param (
         $version
     )
-	if (Test-Path "$pyenv_version_dir\$version\") {
+	if (Test-Path "$pyenv_version_dir\$version\")
+	{
 		$env:PYTHONHOME = "$pyenv_version_dir\$version"
 		$env:Path = [System.Environment]::GetEnvironmentVariable("Path", "Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path", "User")
 		Invoke-Expression "python -V"
-	} else {
+	}
+	else
+	{
 		echo "[Error] Version not available"
 	}
 }
 
-function Global {
+function Global
+{
     param (
         $version
     )
-	if (Test-Path "$pyenv_version_dir\$version\") {
+	if (Test-Path "$pyenv_version_dir\$version\")
+	{
 		$env:PYTHONHOME = "$pyenv_version_dir\$version"
 		setx PYTHONHOME "$env:PYTHONHOME" >nul
 #		Set-ItemProperty -Path 'Registry::HKEY_CURRENT_USER\Environment' -Name PYTHONHOME -Value $env:PYTHONHOME
 		$env:Path = [System.Environment]::GetEnvironmentVariable("Path", "Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path", "User")
 		Invoke-Expression "python -V"
-	} else {
+	}
+	else
+	{
 		echo "[Error] Version not available"
 	}
 }
 
-function Versions {
+function Versions
+{
 	$sub_dirs = $(Get-ChildItem -Directory "$pyenv_version_dir");
-	foreach($sub in $sub_dirs) {
-		if ("$pyenv_version_dir\$($sub.Name)" -eq $env:PYTHONHOME) {
+	foreach($sub in $sub_dirs)
+	{
+		if ("$pyenv_version_dir\$($sub.Name)" -eq $env:PYTHONHOME)
+		{
 			echo "* $($sub.Name)"
-		} else {
+		}
+		else
+		{
 			echo "  $($sub.Name)"
 		}
 	}
 }
 
-function Pip-Transfer {
+function Pip-Transfer
+{
     param (
         $version_from,
         $version_to
@@ -215,19 +271,23 @@ function Pip-Transfer {
 
 	$pythonhome_org = $env:PYTHONHOME
 
-	if (!(Test-Path "$pyenv_version_dir\$version_from\")) {
+	if (!(Test-Path "$pyenv_version_dir\$version_from\"))
+	{
 		echo "[Error] Version $version_from is not installed."
 		exit
 	}
 
-	if (!(Test-Path "$pyenv_version_dir\$version_to\")) {
+	if (!(Test-Path "$pyenv_version_dir\$version_to\"))
+	{
 		echo "Version $version_to is not installed."
 		$res = Read-Host "Do you want to install it now? [y/N]"
-		if ($res -ne "y") {
+		if ($res -ne "y")
+		{
 			exit
 		}
 		Install -version $version_to
-		if (!(Test-Path "$pyenv_version_dir\$version_to\")) {
+		if (!(Test-Path "$pyenv_version_dir\$version_to\"))
+		{
 			echo "[Error] Version $version_to could not be installed."
 			exit
 		}
@@ -247,11 +307,13 @@ function Pip-Transfer {
 	echo "Done."
 }
 
-function Pip-Upgrade-All {
+function Pip-Upgrade-All
+{
 	Invoke-Expression "pip freeze >`"$($env:TMP)\~pip1.txt`""
 	$data = (Import-Csv -Delimiter "=" -Path "$($env:TMP)\~pip1.txt" -Header 'name', 'version')
 	Remove-Item "$($env:TMP)\~pip1.txt"
-	foreach($row in $data){
+	foreach($row in $data)
+	{
 		echo $row.name | Out-File -append "$($env:TMP)\~pip2.txt"
 	}
 	Invoke-Expression "pip install -U -r '$($env:TMP)\~pip2.txt'"
@@ -263,56 +325,67 @@ function Pip-Upgrade-All {
 # START
 ########################################
 
-if ($args.Count -gt 0 -and $args[0] -eq "setup") {
+if ($args.Count -gt 0 -and $args[0] -eq "setup")
+{
 	Setup
 	exit
 }
 
-if ($args.Count -gt 1 -and $args[0] -eq "local") {
+if ($args.Count -gt 1 -and $args[0] -eq "local")
+{
 	Local -version $args[1]
 	exit
 }
 
-elseif ($args.Count -gt 1 -and $args[0] -eq "global") {
+elseif ($args.Count -gt 1 -and $args[0] -eq "global")
+{
 	Global -version $args[1]
 	exit
 }
 
-elseif ($args.Count -gt 1 -and $args[0] -eq "install") {
+elseif ($args.Count -gt 1 -and $args[0] -eq "install")
+{
 	Install -version $args[1]
 	exit
 }
 
-elseif ($args.Count -gt 1 -and $args[0] -eq "uninstall") {
+elseif ($args.Count -gt 1 -and $args[0] -eq "uninstall")
+{
 	Uninstall -version $args[1]
 	exit
 }
 
-elseif ($args.Count -gt 0 -and $args[0] -eq "list") {
+elseif ($args.Count -gt 0 -and $args[0] -eq "list")
+{
 	type "$pyenv_dir\versions_list.txt"
 }
 
-elseif ($args.Count -gt 0 -and $args[0] -eq "versions") {
+elseif ($args.Count -gt 0 -and $args[0] -eq "versions")
+{
 	Versions
 	exit
 }
 
-elseif ($args.Count -gt 0 -and $args[0] -eq "update-list") {
+elseif ($args.Count -gt 0 -and $args[0] -eq "update-list")
+{
 	Update-List
 	exit
 }
 
-elseif ($args.Count -gt 2 -and $args[0] -eq "pip-transfer") {
+elseif ($args.Count -gt 2 -and $args[0] -eq "pip-transfer")
+{
 	Pip-Transfer -version_from $args[1] -version_to $args[2]
 	exit
 }
 
-elseif ($args.Count -gt 0 -and $args[0] -eq "pip-upgrade-all") {
+elseif ($args.Count -gt 0 -and $args[0] -eq "pip-upgrade-all")
+{
 	Pip-Upgrade-All
 	exit
 }
 
-else {
+else
+{
 echo @'
 
 Usage: pyenv <command> [<arguments>]
