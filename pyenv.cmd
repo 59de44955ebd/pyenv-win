@@ -7,6 +7,7 @@ if %ERRORLEVEL% == 0 (
 	goto :eof
 )
 
+
 set PYENV_VERSION=0.1
 set PYENV_DIR=%~dp0
 set PYENV_DIR=%PYENV_DIR:~0,-1%

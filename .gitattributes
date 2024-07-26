@@ -1,2 +1,2 @@
-*.cmd text eol=crlf
-*.ps1 text eol=crlf
+*.cmd binary
+*.ps1 binary
